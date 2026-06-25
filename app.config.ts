@@ -28,12 +28,14 @@ const schemeFromBundleId = `manus${timestamp}`;
 
 const env = {
   // App branding - update these values directly (do not use env vars)
-  appName: "Meus Plantões - Portal da Enfermagem",
+  appName: "Meus Plantões",
   appSlug: "meus-plantoes-enfermagem",
   // S3 URL of the app logo - set this to the URL returned by generate_image when creating custom logo
   // Leave empty to use the default icon from assets/images/icon.png
-  logoUrl: "",
+  logoUrl: "https://d2xsxph8kpxj0f.cloudfront.net/310519663332887395/Eua95gUwPUnanqheM6eyd5/icon-XgchP6q7sQ97uairKe6rib.png",
   scheme: schemeFromBundleId,
+  // Portal da Enfermagem branding
+  portalName: "Portal da Enfermagem",
   iosBundleId: bundleId,
   androidPackage: bundleId,
 };
@@ -42,6 +44,7 @@ const config: ExpoConfig = {
   name: env.appName,
   slug: env.appSlug,
   version: "1.0.0",
+  description: "Aplicativo para profissionais de enfermagem gerarem escalas de plantão automaticamente.",
   orientation: "portrait",
   icon: "./assets/images/icon.png",
   scheme: env.scheme,
@@ -126,5 +129,8 @@ const config: ExpoConfig = {
     reactCompiler: true,
   },
 };
+
+// Export env for use in other files
+export { env };
 
 export default config;
