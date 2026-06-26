@@ -78,8 +78,13 @@
   - [x] Links clicáveis (web, email, telefone)
 
 ## Fase 9: UI/UX e Polimento
-- [ ] Aplicar paleta de cores (tema claro/escuro)
-- [ ] Ícones e símbolos (☀️, 🌙, 🟢, 🔴, 🔵)
+- [x] Aplicar paleta de cores (tema claro/escuro)
+- [x] Ícones e símbolos (☀️, 🌙, 🟢, 🔴, 🔵)
+- [x] Redesign do Gerador com cores pastel (amarelo, azul, verde leves)
+- [x] Seletor visual de sequência com chips removíveis
+- [x] Buttons coloridos para adicionar turnos
+- [x] Visualização da sequência em tempo real
+- [x] Opção de usar padrão pré-definido
 - [ ] Feedback visual (press states, loading, toasts)
 - [ ] Haptic feedback em ações principais
 - [ ] Animações sutis (fade in, transições)

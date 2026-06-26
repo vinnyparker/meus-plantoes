@@ -81,14 +81,16 @@ export default function CalendarScreen() {
   const getEventColor = (type: string) => {
     switch (type) {
       case "SD":
-        return "#87CEEB";
+        return { bg: "#FFFBF0", border: "#FFE8B6", text: "#D4A574" };
       case "SN":
-        return "#9370DB";
+        return { bg: "#F0F4FF", border: "#D4E1FF", text: "#6B8DBE" };
       case "REST":
       case "OFF":
-        return "#22C55E";
+      case "D":
+      case "F":
+        return { bg: "#F0FFF4", border: "#D4F5E8", text: "#6BA876" };
       default:
-        return colors.primary;
+        return { bg: colors.surface, border: colors.border, text: colors.primary };
     }
   };
 
@@ -151,38 +153,40 @@ export default function CalendarScreen() {
               <View key={weekIndex} className="flex-row gap-1">
                 {calendarDays.slice(weekIndex * 7, (weekIndex + 1) * 7).map((day, dayIndex) => {
                   const event = day ? getEventForDate(day) : null;
+                  const eventColors = event ? getEventColor(event.type) : { bg: colors.surface, border: colors.border, text: colors.foreground };
 
                   return (
-                  <TouchableOpacity
-                    key={dayIndex}
-                    className="flex-1 aspect-square rounded-lg border border-border items-center justify-center bg-surface active:opacity-70"
-                    style={{
-                      backgroundColor: event ? getEventColor(event.type) : colors.surface,
-                      borderColor: event ? getEventColor(event.type) : colors.border,
-                    }}
-                    onPress={() => {
-                      if (event) {
-                        router.push(`/(tabs)/event-detail?eventId=${event.id}`);
-                      }
-                    }}
-                  >
+                    <TouchableOpacity
+                      key={dayIndex}
+                      className="flex-1 aspect-square rounded-lg border items-center justify-center active:opacity-70"
+                      style={{
+                        backgroundColor: eventColors.bg,
+                        borderColor: eventColors.border,
+                        borderWidth: 1.5,
+                      }}
+                      onPress={() => {
+                        if (event) {
+                          router.push(`/(tabs)/event-detail?eventId=${event.id}`);
+                        }
+                      }}
+                    >
                       {day && (
-                        <View className="items-center gap-1">
+                        <View className="items-center gap-0.5">
                           <Text
-                            className="text-xs font-semibold"
+                            className="text-xs font-bold"
                             style={{
-                              color: event && (event.type === "REST" || event.type === "OFF") ? "#000" : colors.foreground,
+                              color: eventColors.text,
                             }}
                           >
                             {day}
                           </Text>
                           {event && (
-                            <Text className="text-xs" style={{ color: event.type === "REST" || event.type === "OFF" ? "#000" : "#fff" }}>
+                            <Text className="text-xs" style={{ color: eventColors.text }}>
                               {event.type === "SD"
                                 ? "☀️"
                                 : event.type === "SN"
                                   ? "🌙"
-                                  : event.type === "REST"
+                                  : ["D", "REST"].includes(event.type as any)
                                     ? "💤"
                                     : "🟢"}
                             </Text>
@@ -205,8 +209,8 @@ export default function CalendarScreen() {
             <View className="gap-1">
               <Text className="text-xs text-muted">☀️ SD - Turno Diurno (07:00-19:00)</Text>
               <Text className="text-xs text-muted">🌙 SN - Turno Noturno (19:00-07:00)</Text>
-              <Text className="text-xs text-muted">💤 REST - Dia de Descanso</Text>
-              <Text className="text-xs text-muted">🟢 OFF - Dia de Folga</Text>
+              <Text className="text-xs text-muted">💤 D - Dia de Descanso</Text>
+              <Text className="text-xs text-muted">🟢 F - Dia de Folga</Text>
               <Text className="text-xs text-muted">🔴 P1 | 🔵 P2 - Indicadores</Text>
             </View>
           </View>
