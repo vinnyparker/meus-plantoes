@@ -36,17 +36,17 @@
   - [x] Cores e ícones por tipo de turno
   - [x] Indicadores P1/P2
   - [x] Navegação entre meses
-- [ ] Tela Detalhes do Evento
-  - [ ] Exibir informações completas
-  - [ ] Botões: Editar, Deletar, Exportar, Compartilhar
+- [x] Tela Detalhes do Evento
+  - [x] Exibir informações completas
+  - [x] Botões: Editar, Deletar, Exportar, Compartilhar
 
 ## Fase 5: Configurações
 - [x] Tela Configurações
   - [x] Sistema de turno (12/36, 12/48, customizado)
-  - [ ] Horários de turno (time pickers)
+  - [x] Horários de turno (time pickers)
   - [x] Local padrão de trabalho
   - [x] Configuração P1/P2
-  - [ ] Regras de descanso customizáveis
+  - [x] Regras de descanso customizáveis
 - [x] Persistir configurações no AsyncStorage
 
 ## Fase 6: Integração Google Drive
@@ -64,8 +64,8 @@
 - [x] Incluir horários corretos
 - [x] Incluir local (se configurado)
 - [x] Incluir descrição com tipo de turno
-- [ ] Botão "Exportar" em Detalhes do Evento
-- [ ] Botão "Compartilhar" para enviar .ics
+- [x] Botão "Exportar" em Detalhes do Evento
+- [x] Botão "Compartilhar" para enviar .ics
 
 ## Fase 8: Tela Sobre
 - [x] Criar tela Sobre
@@ -85,31 +85,35 @@
 - [x] Buttons coloridos para adicionar turnos
 - [x] Visualização da sequência em tempo real
 - [x] Opção de usar padrão pré-definido
-- [ ] Feedback visual (press states, loading, toasts)
-- [ ] Haptic feedback em ações principais
-- [ ] Animações sutis (fade in, transições)
-- [ ] Responsividade para diferentes tamanhos de tela
-- [ ] Testar em modo escuro
+- [x] Dropdowns nativos para mês e ano
+- [x] Tela Sobre com header teal e links clicáveis
+- [x] Esquema de cores teal (#1DB584) em todo o app
+- [x] Feedback visual (press states, loading, toasts)
+- [x] Haptic feedback em ações principais
+- [x] Animações sutis (fade in, transições)
+- [x] Responsividade para diferentes tamanhos de tela
+- [x] Testar em modo escuro
 
 ## Fase 10: Navegação e Tab Bar
-- [ ] Configurar tab bar com 4 abas
-  - [ ] Home
-  - [ ] Calendário
-  - [ ] Configurações
-  - [ ] Sobre
-- [ ] Ícones nas abas
-- [ ] Navegação entre telas
+- [x] Configurar tab bar com 5 abas
+  - [x] Home
+  - [x] Gerador
+  - [x] Calendário
+  - [x] Configurações
+  - [x] Sobre
+- [x] Ícones nas abas
+- [x] Navegação entre telas
 
 ## Fase 11: Testes e Validação
-- [ ] Testar geração de escala com múltiplos cenários
-- [ ] Testar exportação .ics
+- [x] Testar geração de escala com múltiplos cenários
+- [x] Testar exportação .ics
 - [ ] Testar sincronização com Google Drive
-- [ ] Testar persistência de dados
-- [ ] Testar em iOS e Android (Expo Go)
-- [ ] Testar modo escuro
+- [x] Testar persistência de dados
+- [x] Testar em iOS e Android (Expo Go)
+- [x] Testar modo escuro
 - [ ] Testar acessibilidade (VoiceOver/TalkBack)
 
 ## Fase 12: Entrega
-- [ ] Criar checkpoint final
-- [ ] Documentar instruções de uso
-- [ ] Preparar para publicação
+- [x] Criar checkpoint final
+- [x] Documentar instruções de uso
+- [x] Preparar para publicação

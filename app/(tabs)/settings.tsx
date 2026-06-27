@@ -1,20 +1,21 @@
 import { ScrollView, Text, View, TouchableOpacity, TextInput, Switch, Alert } from "react-native";
 import { ScreenContainer } from "@/components/screen-container";
 import { useSchedule } from "@/lib/context/schedule-context";
-import { useColors } from "@/hooks/use-colors";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { ShiftType } from "@/lib/types/schedule";
+
+const TEAL_PRIMARY = "#1DB584";
+
+type SequenceItem = ShiftType | "F";
 
 export default function SettingsScreen() {
   const { settings, updateSettings } = useSchedule();
-  const colors = useColors();
 
   const [location, setLocation] = useState(settings.defaultLocation || "");
   const [p1Enabled, setP1Enabled] = useState(settings.p1Shifts.length > 0);
   const [p2Enabled, setP2Enabled] = useState(settings.p2Shifts.length > 0);
   const [p1Shifts, setP1Shifts] = useState<ShiftType[]>(settings.p1Shifts);
   const [p2Shifts, setP2Shifts] = useState<ShiftType[]>(settings.p2Shifts);
-  const [systemType, setSystemType] = useState(settings.shiftSystem.name);
 
   const shiftOptions: ShiftType[] = ["SD", "SN"];
 
@@ -49,132 +50,122 @@ export default function SettingsScreen() {
   };
 
   return (
-    <ScreenContainer className="p-6" containerClassName={`bg-background`}>
+    <ScreenContainer className="p-0" containerClassName={`bg-background`}>
       <ScrollView contentContainerStyle={{ flexGrow: 1 }} showsVerticalScrollIndicator={false}>
-        <View className="flex-1 gap-6">
+        <View className="flex-1">
           {/* Header */}
-          <View className="gap-2">
-            <Text className="text-3xl font-bold text-foreground">Configurações</Text>
-            <Text className="text-sm text-muted">Personalize seu app</Text>
+          <View className="p-6 gap-2" style={{ backgroundColor: TEAL_PRIMARY }}>
+            <Text className="text-white text-2xl font-bold">Configurações</Text>
+            <Text className="text-white text-sm opacity-90">Personalize seu app</Text>
           </View>
 
-          {/* Sistema de Turno */}
-          <View className="gap-3">
-            <Text className="text-base font-semibold text-foreground">Sistema de Turno</Text>
-            <Text className="text-xs text-muted">Atual: {systemType}</Text>
+          <View className="p-6 gap-6">
+            {/* Local Padrão */}
             <View className="gap-2">
-              {["12/36", "12/48"].map((system) => (
-                <View
-                  key={system}
-                  className="bg-surface rounded-lg p-3 border border-border flex-row items-center justify-between"
-                >
-                  <Text className="text-sm text-foreground">{system}</Text>
-                  <View className="w-5 h-5 rounded-full border-2" style={{ borderColor: colors.primary }} />
-                </View>
-              ))}
-            </View>
-          </View>
-
-          {/* Local Padrão */}
-          <View className="gap-2">
-            <Text className="text-base font-semibold text-foreground">Local Padrão de Trabalho</Text>
-            <TextInput
-              className="bg-surface border border-border rounded-lg px-4 py-3 text-foreground"
-              placeholder="ex: Hospital Central"
-              placeholderTextColor={colors.muted}
-              value={location}
-              onChangeText={setLocation}
-            />
-            <Text className="text-xs text-muted">Este local será adicionado a todos os eventos</Text>
-          </View>
-
-          {/* P1 Configuration */}
-          <View className="gap-3">
-            <View className="flex-row items-center justify-between">
-              <Text className="text-base font-semibold text-foreground">Indicador P1 🔴</Text>
-              <Switch value={p1Enabled} onValueChange={setP1Enabled} />
+              <Text className="text-sm font-bold text-foreground uppercase">Local Padrão de Trabalho</Text>
+              <TextInput
+                className="bg-white border border-gray-300 rounded-lg px-4 py-3 text-foreground"
+                placeholder="ex: Hospital Central"
+                placeholderTextColor="#999"
+                value={location}
+                onChangeText={setLocation}
+              />
+              <Text className="text-xs text-gray-600">Este local será adicionado a todos os eventos</Text>
             </View>
 
-            {p1Enabled && (
-              <View className="gap-2">
-                <Text className="text-xs text-muted">Selecione quais turnos são P1:</Text>
-                <View className="gap-2">
-                  {shiftOptions.map((shift) => (
-                    <TouchableOpacity
-                      key={shift}
-                      className={`p-3 rounded-lg border flex-row items-center justify-between ${
-                        p1Shifts.includes(shift) ? "bg-primary border-primary" : "bg-surface border-border"
-                      }`}
-                      onPress={() => handleToggleShift(shift, "P1")}
-                    >
-                      <Text
-                        className={`font-semibold ${p1Shifts.includes(shift) ? "text-background" : "text-foreground"}`}
-                      >
-                        {shift}
-                      </Text>
-                      <View
-                        className={`w-5 h-5 rounded border-2 ${
-                          p1Shifts.includes(shift) ? "bg-background border-background" : "border-border"
-                        }`}
-                      />
-                    </TouchableOpacity>
-                  ))}
-                </View>
+            {/* P1 Configuration */}
+            <View className="gap-3">
+              <View className="flex-row items-center justify-between">
+                <Text className="text-sm font-bold text-foreground uppercase">Indicador P1 🔴</Text>
+                <Switch value={p1Enabled} onValueChange={setP1Enabled} trackColor={{ false: "#ccc", true: TEAL_PRIMARY }} />
               </View>
-            )}
-          </View>
 
-          {/* P2 Configuration */}
-          <View className="gap-3">
-            <View className="flex-row items-center justify-between">
-              <Text className="text-base font-semibold text-foreground">Indicador P2 🔵</Text>
-              <Switch value={p2Enabled} onValueChange={setP2Enabled} />
+              {p1Enabled && (
+                <View className="gap-2">
+                  <Text className="text-xs text-gray-600">Selecione quais turnos são P1:</Text>
+                  <View className="gap-2">
+                    {shiftOptions.map((shift) => (
+                      <TouchableOpacity
+                        key={shift}
+                        className={`p-3 rounded-lg border-2 flex-row items-center justify-between`}
+                        style={{
+                          backgroundColor: p1Shifts.includes(shift) ? TEAL_PRIMARY : "#F5F5F5",
+                          borderColor: p1Shifts.includes(shift) ? TEAL_PRIMARY : "#E0E0E0",
+                        }}
+                        onPress={() => handleToggleShift(shift, "P1")}
+                      >
+                        <Text
+                          className={`font-semibold ${p1Shifts.includes(shift) ? "text-white" : "text-foreground"}`}
+                        >
+                          {shift}
+                        </Text>
+                        <View
+                          className={`w-5 h-5 rounded border-2 ${
+                            p1Shifts.includes(shift) ? "bg-white border-white" : "border-gray-400"
+                          }`}
+                        />
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                </View>
+              )}
             </View>
 
-            {p2Enabled && (
-              <View className="gap-2">
-                <Text className="text-xs text-muted">Selecione quais turnos são P2:</Text>
-                <View className="gap-2">
-                  {shiftOptions.map((shift) => (
-                    <TouchableOpacity
-                      key={shift}
-                      className={`p-3 rounded-lg border flex-row items-center justify-between ${
-                        p2Shifts.includes(shift) ? "bg-primary border-primary" : "bg-surface border-border"
-                      }`}
-                      onPress={() => handleToggleShift(shift, "P2")}
-                    >
-                      <Text
-                        className={`font-semibold ${p2Shifts.includes(shift) ? "text-background" : "text-foreground"}`}
-                      >
-                        {shift}
-                      </Text>
-                      <View
-                        className={`w-5 h-5 rounded border-2 ${
-                          p2Shifts.includes(shift) ? "bg-background border-background" : "border-border"
-                        }`}
-                      />
-                    </TouchableOpacity>
-                  ))}
-                </View>
+            {/* P2 Configuration */}
+            <View className="gap-3">
+              <View className="flex-row items-center justify-between">
+                <Text className="text-sm font-bold text-foreground uppercase">Indicador P2 🔵</Text>
+                <Switch value={p2Enabled} onValueChange={setP2Enabled} trackColor={{ false: "#ccc", true: TEAL_PRIMARY }} />
               </View>
-            )}
-          </View>
 
-          {/* Info */}
-          <View className="bg-surface rounded-lg p-4 border border-border">
-            <Text className="text-xs text-muted leading-relaxed">
-              💡 Dica: As configurações serão aplicadas a todas as novas escalas que você criar. Escalas existentes não
-              serão alteradas.
-            </Text>
-          </View>
+              {p2Enabled && (
+                <View className="gap-2">
+                  <Text className="text-xs text-gray-600">Selecione quais turnos são P2:</Text>
+                  <View className="gap-2">
+                    {shiftOptions.map((shift) => (
+                      <TouchableOpacity
+                        key={shift}
+                        className={`p-3 rounded-lg border-2 flex-row items-center justify-between`}
+                        style={{
+                          backgroundColor: p2Shifts.includes(shift) ? TEAL_PRIMARY : "#F5F5F5",
+                          borderColor: p2Shifts.includes(shift) ? TEAL_PRIMARY : "#E0E0E0",
+                        }}
+                        onPress={() => handleToggleShift(shift, "P2")}
+                      >
+                        <Text
+                          className={`font-semibold ${p2Shifts.includes(shift) ? "text-white" : "text-foreground"}`}
+                        >
+                          {shift}
+                        </Text>
+                        <View
+                          className={`w-5 h-5 rounded border-2 ${
+                            p2Shifts.includes(shift) ? "bg-white border-white" : "border-gray-400"
+                          }`}
+                        />
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                </View>
+              )}
+            </View>
 
-          {/* Botão Salvar */}
-          <TouchableOpacity
-            className="bg-primary rounded-full py-4 items-center active:opacity-80 mt-4"
-            onPress={handleSaveSettings}
-          >
-            <Text className="text-background font-semibold text-base">Salvar Configurações</Text>
-          </TouchableOpacity>
+            {/* Info */}
+            <View className="bg-gray-50 rounded-lg p-4 border border-gray-300">
+              <Text className="text-xs text-gray-700 leading-relaxed">
+                💡 Dica: As configurações serão aplicadas a todas as novas escalas que você criar. Escalas existentes não
+                serão alteradas.
+              </Text>
+            </View>
+
+            {/* Botão Salvar */}
+            <TouchableOpacity
+              className="rounded-lg py-4 items-center active:opacity-80"
+              style={{ backgroundColor: TEAL_PRIMARY }}
+              onPress={handleSaveSettings}
+            >
+              <Text className="text-white font-bold text-base">Salvar Configurações</Text>
+            </TouchableOpacity>
+          </View>
         </View>
       </ScrollView>
     </ScreenContainer>

@@ -1,9 +1,9 @@
-import { ScrollView, Text, View, TouchableOpacity, Linking, Image } from "react-native";
+import { ScrollView, Text, View, TouchableOpacity, Linking } from "react-native";
 import { ScreenContainer } from "@/components/screen-container";
-import { useColors } from "@/hooks/use-colors";
+
+const TEAL_PRIMARY = "#1DB584";
 
 export default function AboutScreen() {
-  const colors = useColors();
 
   const openLink = (url: string) => {
     Linking.openURL(url).catch(() => {
@@ -20,87 +20,126 @@ export default function AboutScreen() {
   };
 
   return (
-    <ScreenContainer className="p-6" containerClassName={`bg-background`}>
+    <ScreenContainer className="p-0" containerClassName={`bg-background`}>
       <ScrollView contentContainerStyle={{ flexGrow: 1 }} showsVerticalScrollIndicator={false}>
-        <View className="flex-1 gap-6 items-center">
-          {/* Logo */}
-          <View className="w-24 h-24 rounded-full bg-primary items-center justify-center mt-4">
-            <Text className="text-5xl">📱</Text>
+        <View className="flex-1">
+          {/* Header */}
+          <View className="p-6 gap-2" style={{ backgroundColor: TEAL_PRIMARY }}>
+            <Text className="text-white text-2xl font-bold">Sobre</Text>
+            <Text className="text-white text-sm opacity-90">Informações do app</Text>
           </View>
 
-          {/* Nome do App */}
-          <View className="items-center gap-2">
-            <Text className="text-3xl font-bold text-foreground">Meus Plantões</Text>
-            <Text className="text-base text-muted">Portal da Enfermagem</Text>
-            <Text className="text-xs text-muted">v1.0.0</Text>
-          </View>
-
-          {/* Descrição */}
-          <View className="bg-surface rounded-2xl p-6 border border-border gap-3">
-            <Text className="text-sm font-semibold text-foreground">Sobre</Text>
-            <Text className="text-sm text-muted leading-relaxed">
-              Aplicativo desenvolvido para ajudar profissionais de enfermagem a organizar automaticamente suas escalas de
-              plantão. Com regras de descanso inteligentes e exportação para Google Calendar.
-            </Text>
-          </View>
-
-          {/* Funcionalidades */}
-          <View className="bg-surface rounded-2xl p-6 border border-border gap-3 w-full">
-            <Text className="text-sm font-semibold text-foreground">Funcionalidades</Text>
-            <View className="gap-2">
-              <Text className="text-xs text-muted">✓ Geração automática de escalas</Text>
-              <Text className="text-xs text-muted">✓ Regras de descanso inteligentes</Text>
-              <Text className="text-xs text-muted">✓ Exportação para Google Calendar</Text>
-              <Text className="text-xs text-muted">✓ Sincronização com Google Drive</Text>
-              <Text className="text-xs text-muted">✓ Indicadores P1 e P2</Text>
-              <Text className="text-xs text-muted">✓ Interface em PT-BR</Text>
+          <View className="p-6 gap-6">
+            {/* Logo */}
+            <View className="items-center gap-4">
+              <View className="w-20 h-20 rounded-full items-center justify-center" style={{ backgroundColor: TEAL_PRIMARY }}>
+                <Text className="text-4xl">🏥</Text>
+              </View>
+              <View className="items-center gap-1">
+                <Text className="text-2xl font-bold text-foreground">Meus Plantões</Text>
+                <Text className="text-sm text-gray-600">Portal da Enfermagem</Text>
+              </View>
             </View>
-          </View>
 
-          {/* Contato */}
-          <View className="bg-surface rounded-2xl p-6 border border-border gap-3 w-full">
-            <Text className="text-sm font-semibold text-foreground">Contato</Text>
+            {/* Descrição */}
+            <View className="bg-white rounded-lg p-4 border border-gray-300 gap-3">
+              <Text className="text-sm text-gray-700 leading-relaxed">
+                Aplicativo para gerar escalas de plantão de forma automática, com regras de descanso aplicadas. Exporte suas escalas para Google Calendar e sincronize com Google Drive.
+              </Text>
+            </View>
 
-            <TouchableOpacity
-              className="flex-row items-center gap-3 p-3 bg-background rounded-lg active:opacity-70"
-              onPress={() => openLink("https://portalenfermagem.com.br")}
-            >
-              <Text className="text-lg">🌐</Text>
-              <View className="flex-1">
-                <Text className="text-xs text-muted">Website</Text>
-                <Text className="text-sm font-semibold text-primary">portalenfermagem.com.br</Text>
+            {/* Versão */}
+            <View className="bg-gray-50 rounded-lg p-4 border border-gray-300 gap-2">
+              <Text className="text-xs text-gray-600 font-semibold">Versão</Text>
+              <Text className="text-sm text-foreground font-bold">1.0.0</Text>
+            </View>
+
+            {/* Contato */}
+            <View className="gap-3">
+              <Text className="text-sm font-bold text-foreground uppercase">Contato</Text>
+
+              <TouchableOpacity
+                className="bg-white rounded-lg p-4 border border-gray-300 flex-row items-center justify-between active:opacity-70"
+                onPress={() => openLink("https://portalenfermagem.com.br")}
+              >
+                <View className="flex-row items-center gap-3">
+                  <Text className="text-2xl">🌐</Text>
+                  <View>
+                    <Text className="text-xs text-gray-600">Website</Text>
+                    <Text className="text-sm font-semibold text-foreground">portalenfermagem.com.br</Text>
+                  </View>
+                </View>
+                <Text className="text-lg" style={{ color: TEAL_PRIMARY }}>
+                  →
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                className="bg-white rounded-lg p-4 border border-gray-300 flex-row items-center justify-between active:opacity-70"
+                onPress={openEmail}
+              >
+                <View className="flex-row items-center gap-3">
+                  <Text className="text-2xl">✉️</Text>
+                  <View>
+                    <Text className="text-xs text-gray-600">Email</Text>
+                    <Text className="text-sm font-semibold text-foreground">contato@portalenfermagem.com.br</Text>
+                  </View>
+                </View>
+                <Text className="text-lg" style={{ color: TEAL_PRIMARY }}>
+                  →
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                className="bg-white rounded-lg p-4 border border-gray-300 flex-row items-center justify-between active:opacity-70"
+                onPress={openPhone}
+              >
+                <View className="flex-row items-center gap-3">
+                  <Text className="text-2xl">📱</Text>
+                  <View>
+                    <Text className="text-xs text-gray-600">Telefone</Text>
+                    <Text className="text-sm font-semibold text-foreground">+55 71 9 9170-6027</Text>
+                  </View>
+                </View>
+                <Text className="text-lg" style={{ color: TEAL_PRIMARY }}>
+                  →
+                </Text>
+              </TouchableOpacity>
+            </View>
+
+            {/* Features */}
+            <View className="gap-3">
+              <Text className="text-sm font-bold text-foreground uppercase">Recursos</Text>
+              <View className="bg-white rounded-lg p-4 border border-gray-300 gap-3">
+                <View className="flex-row gap-3">
+                  <Text className="text-lg">✨</Text>
+                  <Text className="flex-1 text-sm text-gray-700">Geração automática de escalas com regras de descanso</Text>
+                </View>
+                <View className="flex-row gap-3">
+                  <Text className="text-lg">📅</Text>
+                  <Text className="flex-1 text-sm text-gray-700">Visualização em calendário interativo</Text>
+                </View>
+                <View className="flex-row gap-3">
+                  <Text className="text-lg">📤</Text>
+                  <Text className="flex-1 text-sm text-gray-700">Exportação para Google Calendar (.ics)</Text>
+                </View>
+                <View className="flex-row gap-3">
+                  <Text className="text-lg">☁️</Text>
+                  <Text className="flex-1 text-sm text-gray-700">Sincronização com Google Drive</Text>
+                </View>
+                <View className="flex-row gap-3">
+                  <Text className="text-lg">🎯</Text>
+                  <Text className="flex-1 text-sm text-gray-700">Indicadores de prioridade (P1/P2)</Text>
+                </View>
               </View>
-            </TouchableOpacity>
+            </View>
 
-            <TouchableOpacity
-              className="flex-row items-center gap-3 p-3 bg-background rounded-lg active:opacity-70"
-              onPress={openEmail}
-            >
-              <Text className="text-lg">✉️</Text>
-              <View className="flex-1">
-                <Text className="text-xs text-muted">Email</Text>
-                <Text className="text-sm font-semibold text-primary">contato@portalenfermagem.com.br</Text>
-              </View>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              className="flex-row items-center gap-3 p-3 bg-background rounded-lg active:opacity-70"
-              onPress={openPhone}
-            >
-              <Text className="text-lg">📞</Text>
-              <View className="flex-1">
-                <Text className="text-xs text-muted">Telefone</Text>
-                <Text className="text-sm font-semibold text-primary">+55 71 9 9170-6027</Text>
-              </View>
-            </TouchableOpacity>
-          </View>
-
-          {/* Créditos */}
-          <View className="bg-surface rounded-2xl p-6 border border-border gap-3 w-full">
-            <Text className="text-xs text-muted text-center leading-relaxed">
-              Desenvolvido com ❤️ para profissionais de saúde
-            </Text>
-            <Text className="text-xs text-muted text-center">© 2026 Portal da Enfermagem. Todos os direitos reservados.</Text>
+            {/* Footer */}
+            <View className="bg-gray-50 rounded-lg p-4 border border-gray-300 gap-2">
+              <Text className="text-xs text-gray-600 text-center leading-relaxed">
+                Desenvolvido com ❤️ para profissionais de enfermagem
+              </Text>
+            </View>
           </View>
         </View>
       </ScrollView>
