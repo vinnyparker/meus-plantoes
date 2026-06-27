@@ -44,7 +44,7 @@ type Action =
 
 const initialSettings: AppSettings = {
   defaultLocation: "",
-  shiftSystem: ScheduleGenerator.getDefaultSystem("12/36"),
+  shiftSystem: ScheduleGenerator.getDefaultSystem("12/36"), // Sistema padrão (não será alterado)
   p1Shifts: [],
   p2Shifts: [],
   theme: "auto",
@@ -138,7 +138,11 @@ export function ScheduleProvider({ children }: { children: ReactNode }) {
         state.settings.shiftSystem,
         state.settings.defaultLocation,
         state.settings.p1Shifts,
-        state.settings.p2Shifts
+        state.settings.p2Shifts,
+        "07:00", // SD start time
+        "19:00", // SD end time
+        "19:00", // SN start time
+        "07:00"  // SN end time
       );
 
       const newSchedule: Schedule = {

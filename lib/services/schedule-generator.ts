@@ -79,7 +79,11 @@ export class ScheduleGenerator {
     system: ShiftSystem,
     location?: string,
     p1Shifts: ShiftType[] = [],
-    p2Shifts: ShiftType[] = []
+    p2Shifts: ShiftType[] = [],
+    sdStartTime: string = "07:00",
+    sdEndTime: string = "19:00",
+    snStartTime: string = "19:00",
+    snEndTime: string = "07:00"
   ): ScheduleEvent[] {
     if (sequence.length === 0) {
       throw new Error("Sequência de turnos não pode estar vazia");
@@ -119,14 +123,18 @@ export class ScheduleGenerator {
         const config = system.shiftConfigs[shift];
         const indicator = this.getIndicator(shift, p1Shifts, p2Shifts);
         const indicatorStr = indicator ? (indicator === "P1" ? "🔴" : "🔵") : "";
-        const title = `${config.startTime} ${config.icon} ${shift} - ${config.label} ${indicatorStr}`.trim();
+        
+        // Usar horários fixos passados como parâmetro
+        const startTime = shift === "SD" ? sdStartTime : snStartTime;
+        const endTime = shift === "SD" ? sdEndTime : snEndTime;
+        const title = `${startTime} ${config.icon} ${shift} - ${config.label} ${indicatorStr}`.trim();
 
         events.push({
           id: `${currentDate.toISOString()}-${shift}`,
           date: new Date(currentDate),
           type: shift,
-          startTime: config.startTime,
-          endTime: config.endTime,
+          startTime: startTime,
+          endTime: endTime,
           title,
           description: config.label,
           location,

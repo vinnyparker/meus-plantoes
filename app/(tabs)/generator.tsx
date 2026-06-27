@@ -27,7 +27,6 @@ export default function GeneratorScreen() {
   const [selectedMonth, setSelectedMonth] = useState("6");
   const [selectedYear, setSelectedYear] = useState("2026");
   const [sequence, setSequence] = useState<SequenceItem[]>([]);
-  const [selectedSystem, setSelectedSystem] = useState("12/36");
 
   const months = [
     "Janeiro",
@@ -160,29 +159,7 @@ export default function GeneratorScreen() {
               </View>
             </View>
 
-            {/* Sistema de Turno */}
-            <View className="gap-3">
-              <Text className="text-xs font-bold text-foreground uppercase">Sistema de Turno</Text>
-              <View className="flex-row gap-3">
-                {["12/36", "12/48"].map((system) => (
-                  <TouchableOpacity
-                    key={system}
-                    className={`flex-1 py-4 rounded-lg border-2 items-center`}
-                    style={{
-                      backgroundColor: selectedSystem === system ? TEAL_PRIMARY : "#F5F5F5",
-                      borderColor: selectedSystem === system ? TEAL_PRIMARY : "#E0E0E0",
-                    }}
-                    onPress={() => setSelectedSystem(system)}
-                  >
-                    <Text
-                      className={`font-bold text-base ${selectedSystem === system ? "text-white" : "text-foreground"}`}
-                    >
-                      {system}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-            </View>
+
 
             {/* Sequência de Plantões */}
             <View className="gap-4">
