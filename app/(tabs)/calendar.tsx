@@ -1,10 +1,11 @@
-import { ScrollView, Text, View, TouchableOpacity, ActivityIndicator, Modal } from "react-native";
+import { ScrollView, Text, View, TouchableOpacity, ActivityIndicator, Modal, Share, Alert } from "react-native";
 import { ScreenContainer } from "@/components/screen-container";
 import { useSchedule } from "@/lib/context/schedule-context";
 import { useColors } from "@/hooks/use-colors";
 import { useRouter } from "expo-router";
 import { useState, useEffect } from "react";
 import { ScheduleEvent } from "@/lib/types/schedule";
+import { IcsExporter } from "@/lib/services/ics-exporter";
 
 const TEAL_PRIMARY = "#1DB584";
 
@@ -66,6 +67,22 @@ export default function CalendarScreen() {
     
     setSelectedEvent(null);
     setShowP1P2Modal(false);
+  };
+
+  const handleExportToGoogleAgenda = async () => {
+    try {
+      if (!currentSchedule) return;
+
+      const icsContent = IcsExporter.exportSchedule(currentSchedule);
+      const filename = IcsExporter.generateFilename(currentSchedule.name);
+
+      await Share.share({
+        message: `Escala de Plantoes: ${currentSchedule.name}\n\nArquivo: ${filename}`,
+        title: `Exportar ${currentSchedule.name}`,
+      });
+    } catch (error) {
+      Alert.alert("Erro", "Erro ao exportar escala");
+    }
   };
 
   const months = [
@@ -157,6 +174,14 @@ export default function CalendarScreen() {
                 </Text>
               </TouchableOpacity>
             </View>
+
+            <TouchableOpacity
+              className="py-3 rounded-lg items-center active:opacity-70"
+              style={{ backgroundColor: TEAL_PRIMARY }}
+              onPress={handleExportToGoogleAgenda}
+            >
+              <Text className="text-white font-bold">📅 Exportar para Google Agenda</Text>
+            </TouchableOpacity>
 
             <View className="flex-row gap-1">
               {daysOfWeek.map((day) => (
