@@ -11,8 +11,13 @@ export default function CalendarScreen() {
   const router = useRouter();
   const { currentSchedule, loading } = useSchedule();
   const colors = useColors();
-  const [displayMonth, setDisplayMonth] = useState(new Date().getMonth() + 1);
-  const [displayYear, setDisplayYear] = useState(new Date().getFullYear());
+  
+  // Inicializar com o mês da escala gerada, não o mês atual
+  const initialMonth = currentSchedule ? new Date(currentSchedule.startDate).getMonth() + 1 : new Date().getMonth() + 1;
+  const initialYear = currentSchedule ? new Date(currentSchedule.startDate).getFullYear() : new Date().getFullYear();
+  
+  const [displayMonth, setDisplayMonth] = useState(initialMonth);
+  const [displayYear, setDisplayYear] = useState(initialYear);
 
   const getDaysInMonth = (year: number, month: number) => {
     return new Date(year, month, 0).getDate();

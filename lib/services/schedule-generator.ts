@@ -102,7 +102,7 @@ export class ScheduleGenerator {
       if (shift === "F" || shift === "D") {
         // Folga ou Descanso - dia inteiro
         const eventType: EventType = shift === "F" ? "OFF" : "REST";
-        const title = shift === "F" ? "🟢 OFF - Folga" : "🟢 REST - Descanso";
+        const title = shift === "F" ? "🟢 Folga" : "🟢 Descanso";
 
         events.push({
           id: `${currentDate.toISOString()}-${eventType}`,
@@ -155,7 +155,7 @@ export class ScheduleGenerator {
 
             const isOff = i >= rule.restDays;
             const eventType: EventType = isOff ? "OFF" : "REST";
-            const restTitle = isOff ? "🟢 OFF - Folga" : "🟢 REST - Descanso";
+            const restTitle = isOff ? "🟢 Folga" : "🟢 Descanso";
 
             events.push({
               id: `${currentDate.toISOString()}-${eventType}`,
