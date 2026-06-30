@@ -10,10 +10,9 @@ const TEAL_PRIMARY = "#1DB584";
 
 export default function CalendarScreen() {
   const router = useRouter();
-  const { currentSchedule, loading } = useSchedule();
+  const { currentSchedule, loading, updateEventIndicator } = useSchedule();
   const colors = useColors();
 
-  // Inicializar com o mês da escala gerada, não o mês atual
   const initialMonth = currentSchedule ? new Date(currentSchedule.startDate).getMonth() + 1 : new Date().getMonth() + 1;
   const initialYear = currentSchedule ? new Date(currentSchedule.startDate).getFullYear() : new Date().getFullYear();
 
@@ -21,14 +20,6 @@ export default function CalendarScreen() {
   const [displayYear, setDisplayYear] = useState(initialYear);
   const [selectedEvent, setSelectedEvent] = useState<ScheduleEvent | null>(null);
   const [showP1P2Modal, setShowP1P2Modal] = useState(false);
-  const [events, setEvents] = useState<ScheduleEvent[]>(currentSchedule?.events || []);
-
-  // Sincronizar eventos quando currentSchedule muda
-  useEffect(() => {
-    if (currentSchedule?.events) {
-      setEvents(currentSchedule.events);
-    }
-  }, [currentSchedule]);
 
   const getDaysInMonth = (year: number, month: number) => {
     return new Date(year, month, 0).getDate();
@@ -39,7 +30,7 @@ export default function CalendarScreen() {
   };
 
   const getEventForDate = (day: number) => {
-    return events.find((event) => {
+    return currentSchedule?.events.find((event) => {
       const eventDate = new Date(event.date);
       return (
         eventDate.getDate() === day &&
@@ -67,17 +58,12 @@ export default function CalendarScreen() {
     }
   };
 
-  const handleSetIndicator = (indicator: "P1" | "P2") => {
+  const handleSetIndicator = async (indicator: "P1" | "P2") => {
     if (!selectedEvent) return;
 
-    // Atualizar o evento com o indicador
-    const updatedEvents = events.map((event) =>
-      event.id === selectedEvent.id
-        ? { ...event, indicator: event.indicator === indicator ? undefined : indicator }
-        : event
-    );
-
-    setEvents(updatedEvents);
+    const newIndicator = selectedEvent.indicator === indicator ? null : indicator;
+    await updateEventIndicator(selectedEvent.id, newIndicator);
+    
     setSelectedEvent(null);
     setShowP1P2Modal(false);
   };
@@ -148,14 +134,12 @@ export default function CalendarScreen() {
     <ScreenContainer className="p-0" containerClassName={`bg-background`}>
       <ScrollView contentContainerStyle={{ flexGrow: 1 }} showsVerticalScrollIndicator={false}>
         <View className="flex-1">
-          {/* Header */}
           <View className="p-6 gap-2" style={{ backgroundColor: TEAL_PRIMARY }}>
             <Text className="text-white text-2xl font-bold">Calendário</Text>
             <Text className="text-white text-sm opacity-90">{currentSchedule.name}</Text>
           </View>
 
           <View className="p-6 gap-4">
-            {/* Navegação de Mês */}
             <View className="flex-row items-center justify-between bg-white rounded-lg p-4 border border-gray-300">
               <TouchableOpacity onPress={handlePrevMonth} className="active:opacity-70">
                 <Text className="text-2xl" style={{ color: TEAL_PRIMARY }}>
@@ -174,7 +158,6 @@ export default function CalendarScreen() {
               </TouchableOpacity>
             </View>
 
-            {/* Dias da Semana */}
             <View className="flex-row gap-1">
               {daysOfWeek.map((day) => (
                 <View key={day} className="flex-1 items-center py-2">
@@ -183,17 +166,15 @@ export default function CalendarScreen() {
               ))}
             </View>
 
-            {/* Grid de Dias */}
             <View className="gap-1">
               {Array.from({ length: Math.ceil(calendarDays.length / 7) }).map((_, weekIndex) => (
                 <View key={weekIndex} className="flex-row gap-1">
                   {calendarDays.slice(weekIndex * 7, (weekIndex + 1) * 7).map((day, dayIndex) => {
-                    const event = day ? getEventForDate(day) : null;
+                    const event = day && currentSchedule ? getEventForDate(day) : null;
                     const eventColors = event
                       ? getEventColor(event.type)
                       : { bg: "#F5F5F5", border: "#E0E0E0", text: "#999", textBold: "#666" };
 
-                    // Permitir clicar em SD/SN para marcar P1/P2
                     const isClickable = event && (event.type === "SD" || event.type === "SN");
 
                     return (
@@ -206,7 +187,7 @@ export default function CalendarScreen() {
                           opacity: isClickable ? 1 : 0.7,
                         }}
                         onPress={() => {
-                          if (isClickable) {
+                          if (isClickable && event) {
                             setSelectedEvent(event);
                             setShowP1P2Modal(true);
                           } else if (event) {
@@ -249,7 +230,6 @@ export default function CalendarScreen() {
               ))}
             </View>
 
-            {/* Legenda */}
             <View className="bg-white rounded-lg p-4 border border-gray-300 gap-3">
               <Text className="text-sm font-bold text-foreground">Legenda</Text>
               <View className="gap-2">
@@ -274,7 +254,6 @@ export default function CalendarScreen() {
         </View>
       </ScrollView>
 
-      {/* Modal P1/P2 */}
       <Modal transparent visible={showP1P2Modal} animationType="fade">
         <View className="flex-1 bg-black/50 items-center justify-center p-6">
           <View className="bg-white rounded-lg p-6 gap-4 w-full max-w-xs">

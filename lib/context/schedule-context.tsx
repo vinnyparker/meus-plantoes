@@ -21,6 +21,7 @@ interface ScheduleContextType {
   deleteSchedule: (id: string) => Promise<void>;
   updateSettings: (settings: Partial<AppSettings>) => Promise<void>;
   loadSettings: () => Promise<void>;
+  updateEventIndicator: (eventId: string, indicator: "P1" | "P2" | null) => Promise<void>;
 }
 
 const ScheduleContext = createContext<ScheduleContextType | undefined>(undefined);
@@ -40,11 +41,12 @@ type Action =
   | { type: "ADD_SCHEDULE"; payload: Schedule }
   | { type: "DELETE_SCHEDULE"; payload: string }
   | { type: "SET_CURRENT_SCHEDULE"; payload: Schedule | null }
-  | { type: "SET_SETTINGS"; payload: AppSettings };
+  | { type: "SET_SETTINGS"; payload: AppSettings }
+  | { type: "UPDATE_EVENT_INDICATOR"; payload: { eventId: string; indicator: "P1" | "P2" | null } };
 
 const initialSettings: AppSettings = {
   defaultLocation: "",
-  shiftSystem: ScheduleGenerator.getDefaultSystem("12/36"), // Sistema padrão (não será alterado)
+  shiftSystem: ScheduleGenerator.getDefaultSystem("12/36"),
   p1Shifts: [],
   p2Shifts: [],
   theme: "auto",
@@ -78,6 +80,22 @@ function scheduleReducer(state: State, action: Action): State {
       return { ...state, currentSchedule: action.payload };
     case "SET_SETTINGS":
       return { ...state, settings: action.payload };
+    case "UPDATE_EVENT_INDICATOR":
+      if (!state.currentSchedule) return state;
+      const updatedEvents = state.currentSchedule.events.map((event) =>
+        event.id === action.payload.eventId
+          ? { ...event, indicator: action.payload.indicator }
+          : event
+      );
+      const updatedSchedule = { ...state.currentSchedule, events: updatedEvents };
+      const updatedSchedulesList = state.schedules.map((s) =>
+        s.id === updatedSchedule.id ? updatedSchedule : s
+      );
+      return {
+        ...state,
+        currentSchedule: updatedSchedule,
+        schedules: updatedSchedulesList,
+      };
     default:
       return state;
   }
@@ -86,7 +104,6 @@ function scheduleReducer(state: State, action: Action): State {
 export function ScheduleProvider({ children }: { children: ReactNode }) {
   const [state, dispatch] = useReducer(scheduleReducer, initialState);
 
-  // Carregar dados ao iniciar
   useEffect(() => {
     loadSchedules();
     loadSettings();
@@ -99,6 +116,12 @@ export function ScheduleProvider({ children }: { children: ReactNode }) {
       if (data) {
         const schedules = JSON.parse(data) as Schedule[];
         dispatch({ type: "SET_SCHEDULES", payload: schedules });
+        
+        // Restaurar currentSchedule (última escala criada)
+        if (schedules.length > 0) {
+          const lastSchedule = schedules[schedules.length - 1];
+          dispatch({ type: "SET_CURRENT_SCHEDULE", payload: lastSchedule });
+        }
       }
     } catch (error) {
       dispatch({ type: "SET_ERROR", payload: "Erro ao carregar escalas" });
@@ -139,10 +162,10 @@ export function ScheduleProvider({ children }: { children: ReactNode }) {
         state.settings.defaultLocation,
         state.settings.p1Shifts,
         state.settings.p2Shifts,
-        "07:00", // SD start time
-        "19:00", // SD end time
-        "19:00", // SN start time
-        "07:00"  // SN end time
+        "07:00",
+        "19:00",
+        "19:00",
+        "07:00"
       );
 
       const newSchedule: Schedule = {
@@ -176,6 +199,27 @@ export function ScheduleProvider({ children }: { children: ReactNode }) {
     dispatch({ type: "SET_CURRENT_SCHEDULE", payload: schedule });
   };
 
+  const updateEventIndicator = async (eventId: string, indicator: "P1" | "P2" | null) => {
+    try {
+      dispatch({ type: "UPDATE_EVENT_INDICATOR", payload: { eventId, indicator } });
+      
+      // Salvar no AsyncStorage
+      const updatedSchedules = state.schedules.map((s) =>
+        s.id === state.currentSchedule?.id
+          ? {
+              ...s,
+              events: s.events.map((e) =>
+                e.id === eventId ? { ...e, indicator } : e
+              ),
+            }
+          : s
+      );
+      await AsyncStorage.setItem("schedules", JSON.stringify(updatedSchedules));
+    } catch (error) {
+      console.error("Erro ao atualizar indicador:", error);
+    }
+  };
+
   const deleteSchedule = async (id: string) => {
     try {
       const updatedSchedules = state.schedules.filter((s) => s.id !== id);
@@ -183,36 +227,39 @@ export function ScheduleProvider({ children }: { children: ReactNode }) {
       dispatch({ type: "DELETE_SCHEDULE", payload: id });
     } catch (error) {
       dispatch({ type: "SET_ERROR", payload: "Erro ao deletar escala" });
-      throw error;
     }
   };
 
-  const updateSettings = async (newSettings: Partial<AppSettings>) => {
+  const updateSettings = async (settings: Partial<AppSettings>) => {
     try {
-      const updated = { ...state.settings, ...newSettings };
-      await AsyncStorage.setItem("settings", JSON.stringify(updated));
-      dispatch({ type: "SET_SETTINGS", payload: updated });
+      const newSettings = { ...state.settings, ...settings };
+      await AsyncStorage.setItem("settings", JSON.stringify(newSettings));
+      dispatch({ type: "SET_SETTINGS", payload: newSettings });
     } catch (error) {
       dispatch({ type: "SET_ERROR", payload: "Erro ao atualizar configurações" });
-      throw error;
     }
   };
 
-  const value: ScheduleContextType = {
-    schedules: state.schedules,
-    currentSchedule: state.currentSchedule,
-    settings: state.settings,
-    loading: state.loading,
-    error: state.error,
-    createSchedule,
-    loadSchedules,
-    setCurrentSchedule,
-    deleteSchedule,
-    updateSettings,
-    loadSettings,
-  };
-
-  return <ScheduleContext.Provider value={value}>{children}</ScheduleContext.Provider>;
+  return (
+    <ScheduleContext.Provider
+      value={{
+        schedules: state.schedules,
+        currentSchedule: state.currentSchedule,
+        settings: state.settings,
+        loading: state.loading,
+        error: state.error,
+        createSchedule,
+        loadSchedules,
+        setCurrentSchedule,
+        deleteSchedule,
+        updateSettings,
+        loadSettings,
+        updateEventIndicator,
+      }}
+    >
+      {children}
+    </ScheduleContext.Provider>
+  );
 }
 
 export function useSchedule() {
