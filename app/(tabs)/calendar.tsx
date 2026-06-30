@@ -1,9 +1,10 @@
-import { ScrollView, Text, View, TouchableOpacity, ActivityIndicator } from "react-native";
+import { ScrollView, Text, View, TouchableOpacity, ActivityIndicator, Modal } from "react-native";
 import { ScreenContainer } from "@/components/screen-container";
 import { useSchedule } from "@/lib/context/schedule-context";
 import { useColors } from "@/hooks/use-colors";
 import { useRouter } from "expo-router";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { ScheduleEvent } from "@/lib/types/schedule";
 
 const TEAL_PRIMARY = "#1DB584";
 
@@ -11,13 +12,23 @@ export default function CalendarScreen() {
   const router = useRouter();
   const { currentSchedule, loading } = useSchedule();
   const colors = useColors();
-  
+
   // Inicializar com o mês da escala gerada, não o mês atual
   const initialMonth = currentSchedule ? new Date(currentSchedule.startDate).getMonth() + 1 : new Date().getMonth() + 1;
   const initialYear = currentSchedule ? new Date(currentSchedule.startDate).getFullYear() : new Date().getFullYear();
-  
+
   const [displayMonth, setDisplayMonth] = useState(initialMonth);
   const [displayYear, setDisplayYear] = useState(initialYear);
+  const [selectedEvent, setSelectedEvent] = useState<ScheduleEvent | null>(null);
+  const [showP1P2Modal, setShowP1P2Modal] = useState(false);
+  const [events, setEvents] = useState<ScheduleEvent[]>(currentSchedule?.events || []);
+
+  // Sincronizar eventos quando currentSchedule muda
+  useEffect(() => {
+    if (currentSchedule?.events) {
+      setEvents(currentSchedule.events);
+    }
+  }, [currentSchedule]);
 
   const getDaysInMonth = (year: number, month: number) => {
     return new Date(year, month, 0).getDate();
@@ -28,9 +39,7 @@ export default function CalendarScreen() {
   };
 
   const getEventForDate = (day: number) => {
-    if (!currentSchedule) return null;
-
-    return currentSchedule.events.find((event) => {
+    return events.find((event) => {
       const eventDate = new Date(event.date);
       return (
         eventDate.getDate() === day &&
@@ -56,6 +65,21 @@ export default function CalendarScreen() {
     } else {
       setDisplayMonth(displayMonth + 1);
     }
+  };
+
+  const handleSetIndicator = (indicator: "P1" | "P2") => {
+    if (!selectedEvent) return;
+
+    // Atualizar o evento com o indicador
+    const updatedEvents = events.map((event) =>
+      event.id === selectedEvent.id
+        ? { ...event, indicator: event.indicator === indicator ? undefined : indicator }
+        : event
+    );
+
+    setEvents(updatedEvents);
+    setSelectedEvent(null);
+    setShowP1P2Modal(false);
   };
 
   const months = [
@@ -169,6 +193,9 @@ export default function CalendarScreen() {
                       ? getEventColor(event.type)
                       : { bg: "#F5F5F5", border: "#E0E0E0", text: "#999", textBold: "#666" };
 
+                    // Permitir clicar em SD/SN para marcar P1/P2
+                    const isClickable = event && (event.type === "SD" || event.type === "SN");
+
                     return (
                       <TouchableOpacity
                         key={dayIndex}
@@ -176,9 +203,13 @@ export default function CalendarScreen() {
                         style={{
                           backgroundColor: eventColors.bg,
                           borderColor: eventColors.border,
+                          opacity: isClickable ? 1 : 0.7,
                         }}
                         onPress={() => {
-                          if (event) {
+                          if (isClickable) {
+                            setSelectedEvent(event);
+                            setShowP1P2Modal(true);
+                          } else if (event) {
                             router.push(`/(tabs)/event-detail?eventId=${event.id}`);
                           }
                         }}
@@ -232,16 +263,58 @@ export default function CalendarScreen() {
                 </View>
                 <View className="flex-row items-center gap-2">
                   <View className="w-6 h-6 rounded" style={{ backgroundColor: "#E6F9F0", borderColor: "#1DB584", borderWidth: 2 }} />
-                  <Text className="text-xs text-gray-700">💤 D - Dia de Descanso / 🟢 F - Folga</Text>
+                  <Text className="text-xs text-gray-700">💤 Descanso / 🟢 Folga</Text>
                 </View>
                 <View className="flex-row items-center gap-2">
-                  <Text className="text-xs text-gray-700">🔴 P1 - Primeira Prioridade | 🔵 P2 - Segunda Prioridade</Text>
+                  <Text className="text-sm">🔴 P1 • 🔵 P2</Text>
                 </View>
               </View>
             </View>
           </View>
         </View>
       </ScrollView>
+
+      {/* Modal P1/P2 */}
+      <Modal transparent visible={showP1P2Modal} animationType="fade">
+        <View className="flex-1 bg-black/50 items-center justify-center p-6">
+          <View className="bg-white rounded-lg p-6 gap-4 w-full max-w-xs">
+            <Text className="text-lg font-bold text-foreground">Marcar como P1 ou P2?</Text>
+            <Text className="text-sm text-muted">
+              {selectedEvent?.type === "SD" ? "Turno Diurno" : "Turno Noturno"} - {selectedEvent?.date ? new Date(selectedEvent.date).toLocaleDateString("pt-BR") : ""}
+            </Text>
+
+            <View className="flex-row gap-3">
+              <TouchableOpacity
+                className="flex-1 py-3 rounded-lg items-center border-2 active:opacity-70"
+                style={{ backgroundColor: "#FFE6E6", borderColor: "#FF6B6B" }}
+                onPress={() => handleSetIndicator("P1")}
+              >
+                <Text className="font-bold text-base" style={{ color: "#FF6B6B" }}>
+                  🔴 P1
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                className="flex-1 py-3 rounded-lg items-center border-2 active:opacity-70"
+                style={{ backgroundColor: "#E6F2FF", borderColor: "#4A90E2" }}
+                onPress={() => handleSetIndicator("P2")}
+              >
+                <Text className="font-bold text-base" style={{ color: "#4A90E2" }}>
+                  🔵 P2
+                </Text>
+              </TouchableOpacity>
+            </View>
+
+            <TouchableOpacity
+              className="py-3 rounded-lg items-center active:opacity-70"
+              style={{ backgroundColor: "#F5F5F5" }}
+              onPress={() => setShowP1P2Modal(false)}
+            >
+              <Text className="font-bold text-foreground">Cancelar</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </ScreenContainer>
   );
 }
