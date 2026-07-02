@@ -4,7 +4,7 @@
 
 export type ShiftType = "SD" | "SN" | "F" | "D";
 export type IndicatorType = "P1" | "P2" | null;
-export type EventType = "SD" | "SN" | "REST" | "OFF";
+export type EventType = "SD" | "SN" | "F" | "D" | "REST" | "OFF";
 
 export interface ShiftConfig {
   type: ShiftType;

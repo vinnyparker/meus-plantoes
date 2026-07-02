@@ -41,6 +41,22 @@ export default function CalendarScreen() {
     });
   };
 
+  const getMonthStats = () => {
+    let sd = 0, sn = 0, folga = 0, descanso = 0;
+    
+    currentSchedule?.events.forEach((event) => {
+      const eventDate = new Date(event.date);
+      if (eventDate.getMonth() + 1 === displayMonth && eventDate.getFullYear() === displayYear) {
+        if (event.type === "SD") sd++;
+        else if (event.type === "SN") sn++;
+        else if (event.type === "F" || event.type === "OFF") folga++;
+        else if (event.type === "D" || event.type === "REST" || event.type === "OFF") descanso++;
+      }
+    });
+
+    return { sd, sn, folga, descanso };
+  };
+
   const handlePrevMonth = () => {
     if (displayMonth === 1) {
       setDisplayMonth(12);
@@ -127,6 +143,8 @@ export default function CalendarScreen() {
         return { bg: "#F5F5F5", border: "#E0E0E0", text: "#666", textBold: "#333" };
     }
   };
+
+  const stats = getMonthStats();
 
   if (loading) {
     return (
@@ -253,6 +271,33 @@ export default function CalendarScreen() {
                   })}
                 </View>
               ))}
+            </View>
+
+            {/* Painel de Estatísticas */}
+            <View className="bg-white rounded-lg p-4 border border-gray-300 gap-4">
+              <Text className="text-sm font-bold text-foreground">📊 Estatísticas do Mês</Text>
+              <View className="flex-row gap-2">
+                <View className="flex-1 bg-yellow-50 rounded-lg p-3 border border-yellow-200 items-center">
+                  <Text className="text-2xl">☀️</Text>
+                  <Text className="text-xs text-gray-600 mt-1">Diurnos</Text>
+                  <Text className="text-lg font-bold text-yellow-700">{stats.sd}</Text>
+                </View>
+                <View className="flex-1 bg-blue-50 rounded-lg p-3 border border-blue-200 items-center">
+                  <Text className="text-2xl">🌙</Text>
+                  <Text className="text-xs text-gray-600 mt-1">Noturnos</Text>
+                  <Text className="text-lg font-bold text-blue-700">{stats.sn}</Text>
+                </View>
+                <View className="flex-1 bg-green-50 rounded-lg p-3 border border-green-200 items-center">
+                  <Text className="text-2xl">🟢</Text>
+                  <Text className="text-xs text-gray-600 mt-1">Folgas</Text>
+                  <Text className="text-lg font-bold text-green-700">{stats.folga}</Text>
+                </View>
+                <View className="flex-1 bg-purple-50 rounded-lg p-3 border border-purple-200 items-center">
+                  <Text className="text-2xl">💤</Text>
+                  <Text className="text-xs text-gray-600 mt-1">Descansos</Text>
+                  <Text className="text-lg font-bold text-purple-700">{stats.descanso}</Text>
+                </View>
+              </View>
             </View>
 
             <View className="bg-white rounded-lg p-4 border border-gray-300 gap-3">
