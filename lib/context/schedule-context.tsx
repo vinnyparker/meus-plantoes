@@ -154,18 +154,24 @@ export function ScheduleProvider({ children }: { children: ReactNode }) {
         throw new Error(validation.errors.join(", "));
       }
 
+      // Extrair horas de descanso do shiftSystem
+      const sdRule = state.settings.shiftSystem.rules.find((r) => r.afterShift === "SD");
+      const snRule = state.settings.shiftSystem.rules.find((r) => r.afterShift === "SN");
+      
+      const restConfig = {
+        sdRestHours: sdRule ? (sdRule.restDays + sdRule.offDays) * 24 : 36,
+        snRestHours: snRule ? (snRule.restDays + snRule.offDays) * 24 : 48,
+      };
+
       const events = ScheduleGenerator.generateSchedule(
         parsed,
         year,
         month,
         state.settings.shiftSystem,
+        restConfig,
         state.settings.defaultLocation,
         state.settings.p1Shifts,
-        state.settings.p2Shifts,
-        "07:00",
-        "19:00",
-        "19:00",
-        "07:00"
+        state.settings.p2Shifts
       );
 
       const newSchedule: Schedule = {
