@@ -70,6 +70,24 @@ export class ScheduleGenerator {
   }
 
   /**
+   * Converte horas de descanso em dias de calendário
+   * Considera que plantões têm 12 horas
+   * 24h = 1 dia, 36h = 1.5 dias, 48h = 2 dias
+   */
+  static hoursToCalendarDays(hours: number, shiftEndTime: string): number {
+    // Horários padrão
+    const sdEndTime = "19:00"; // SD termina às 19h
+    const snEndTime = "07:00"; // SN termina às 7h do dia seguinte
+
+    // Se o plantão termina às 19h (SD), o descanso começa às 19h
+    // Se o plantão termina às 7h (SN), o descanso começa às 7h
+    
+    // Converter horas em dias
+    const days = hours / 24;
+    return days;
+  }
+
+  /**
    * Gera uma escala completa a partir de uma sequência
    */
   static generateSchedule(
@@ -181,7 +199,7 @@ export class ScheduleGenerator {
                 type: "REST",
                 startTime: "00:00",
                 endTime: "12:00",
-                title: "🟢 REST - Meio Descanso (Manhã)",
+                title: "🟢 Descanso - Meio Período (Manhã)",
                 description: "Meio dia de descanso",
                 location,
                 isRest: true,

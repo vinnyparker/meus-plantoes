@@ -5,7 +5,7 @@ import { StatusBar } from "expo-status-bar";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import "react-native-reanimated";
-import { Platform } from "react-native";
+import { Platform, View } from "react-native";
 import "@/lib/_core/nativewind-pressable";
 import { ThemeProvider } from "@/lib/theme-provider";
 import { ScheduleProvider } from "@/lib/context/schedule-context";
@@ -16,7 +16,7 @@ import {
   initialWindowMetrics,
 } from "react-native-safe-area-context";
 import type { EdgeInsets, Metrics, Rect } from "react-native-safe-area-context";
-
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { trpc, createTRPCClient } from "@/lib/trpc";
 import { initManusRuntime, subscribeSafeAreaInsets } from "@/lib/_core/manus-runtime";
 
@@ -33,11 +33,22 @@ export default function RootLayout() {
 
   const [insets, setInsets] = useState<EdgeInsets>(initialInsets);
   const [frame, setFrame] = useState<Rect>(initialFrame);
+  const [showWizard, setShowWizard] = useState<boolean | null>(null);
 
   // Initialize Manus runtime for cookie injection from parent container
   useEffect(() => {
     initManusRuntime();
+    checkFirstTime();
   }, []);
+
+  const checkFirstTime = async () => {
+    try {
+      const settings = await AsyncStorage.getItem("settings");
+      setShowWizard(!settings);
+    } catch (error) {
+      setShowWizard(false);
+    }
+  };
 
   const handleSafeAreaUpdate = useCallback((metrics: Metrics) => {
     setInsets(metrics.insets);
@@ -88,15 +99,26 @@ export default function RootLayout() {
           {/* If a screen needs the native header, explicitly enable it and set a human title via Stack.Screen options. */}
           {/* in order for ios apps tab switching to work properly, use presentation: "fullScreenModal" for login page, whenever you decide to use presentation: "modal*/}
           <Stack screenOptions={{ headerShown: false }}>
+            {showWizard && <Stack.Screen name="wizard" />}
             <Stack.Screen name="(tabs)" />
             <Stack.Screen name="oauth/callback" />
           </Stack>
-          <StatusBar style="auto" />
+          {showWizard === null ? null : <StatusBar style="auto" />}
           </QueryClientProvider>
         </trpc.Provider>
       </ScheduleProvider>
     </GestureHandlerRootView>
   );
+
+  if (showWizard === null) {
+    return (
+      <ThemeProvider>
+        <SafeAreaProvider initialMetrics={providerInitialMetrics}>
+          <View style={{ flex: 1 }} />
+        </SafeAreaProvider>
+      </ThemeProvider>
+    );
+  }
 
   const shouldOverrideSafeArea = Platform.OS === "web";
 
