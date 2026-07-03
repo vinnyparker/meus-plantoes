@@ -1,25 +1,28 @@
 /**
  * Motor de geração de escalas com regras de descanso automáticas
- * Algoritmo: descanso é contado em HORAS a partir do horário de término do plantão
  * 
- * Exemplo SD 12/36 + SN 12/48:
- * - SD 01/07 07:00-19:00 → termina 19:00
- * - +36h → 19:00 + 36h = 19:00 do dia 03/07 (próximo SN)
- * - SN 03/07 19:00-07:00 (dia 04) → termina 07:00
- * - +48h → 07:00 + 48h = 07:00 do dia 06/07 (próximo SD)
+ * LÓGICA CORRIGIDA:
+ * 1. Sequência define plantões e folgas explícitas
+ * 2. Após um plantão, calcular quando termina o descanso (plantão + horas)
+ * 3. Se a folga explícita cabe dentro do descanso, preencher descanso automático até a folga
+ * 4. Depois da folga, próximo plantão
+ * 
+ * Exemplo: "SD, F, SN, F" com SD 36h + SN 48h
+ * - 01/07: SD (07:00-19:00) termina 19:00
+ * - 02/07: F (folga explícita) - dentro do descanso de 36h
+ * - 03/07: SN (19:00-07:00 dia 04) - começa quando termina a folga
+ * - 04/07: F (folga explícita)
+ * - 05/07: SD (próximo plantão)
  */
 
 import { ScheduleEvent, ShiftType, ShiftSystem, IndicatorType, EventType } from "@/lib/types/schedule";
 
 export interface RestConfig {
-  sdRestHours: number; // Horas de descanso após SD (24, 36 ou 48)
-  snRestHours: number; // Horas de descanso após SN (24, 36 ou 48)
+  sdRestHours: number;
+  snRestHours: number;
 }
 
 export class ScheduleGenerator {
-  /**
-   * Configurações padrão de turnos
-   */
   static readonly DEFAULT_SHIFT_CONFIG = {
     SD: {
       type: "SD" as ShiftType,
@@ -39,9 +42,6 @@ export class ScheduleGenerator {
     },
   };
 
-  /**
-   * Sistemas de turno pré-configurados
-   */
   static readonly SHIFT_SYSTEMS = {
     "12/36": {
       name: "12/36",
@@ -71,9 +71,6 @@ export class ScheduleGenerator {
     },
   };
 
-  /**
-   * Parseia uma sequência de turnos (ex: "SD, F, SN, F")
-   */
   static parseSequence(sequence: string): ShiftType[] {
     return sequence
       .split(/[,\s]+/)
@@ -81,29 +78,19 @@ export class ScheduleGenerator {
       .filter((s) => ["SD", "SN", "F", "D"].includes(s)) as ShiftType[];
   }
 
-  /**
-   * Adiciona horas a uma data/hora
-   */
   private static addHours(date: Date, hours: number): Date {
     const result = new Date(date);
     result.setHours(result.getHours() + hours);
     return result;
   }
 
-  /**
-   * Obtém a data/hora de término de um plantão
-   * SD: termina às 19:00 do mesmo dia
-   * SN: termina às 07:00 do dia seguinte
-   */
   private static getShiftEndDateTime(shiftDate: Date, shiftType: ShiftType): Date {
     const result = new Date(shiftDate);
     result.setHours(0, 0, 0, 0);
 
     if (shiftType === "SD") {
-      // SD: 07:00 a 19:00 do mesmo dia
       result.setHours(19, 0, 0, 0);
     } else if (shiftType === "SN") {
-      // SN: 19:00 a 07:00 do dia seguinte
       result.setDate(result.getDate() + 1);
       result.setHours(7, 0, 0, 0);
     }
@@ -111,20 +98,6 @@ export class ScheduleGenerator {
     return result;
   }
 
-  /**
-   * Gera uma escala completa a partir de uma sequência
-   * 
-   * IMPORTANTE: A sequência define APENAS os plantões e folgas explícitas.
-   * O descanso automático é calculado em HORAS a partir do término do plantão.
-   * 
-   * Exemplo: "SD, F, SN, F" com SD 36h + SN 48h:
-   * - SD 01/07 07:00-19:00 → termina 19:00
-   * - +36h → 19:00 + 36h = 19:00 do dia 03/07 (próximo SN)
-   * - F (folga explícita) → 02/07
-   * - SN 03/07 19:00-07:00 (dia 04) → termina 07:00
-   * - +48h → 07:00 + 48h = 07:00 do dia 06/07 (próximo SD)
-   * - F (folga explícita) → 05/07
-   */
   static generateSchedule(
     sequence: ShiftType[],
     year: number,
@@ -147,13 +120,12 @@ export class ScheduleGenerator {
 
     let currentDate = new Date(startDate);
     let sequenceIndex = 0;
-    let nextPlantaoDateTime: Date | null = null;
 
     while (currentDate <= endDate) {
       const shift = sequence[sequenceIndex % sequence.length];
 
       if (shift === "F" || shift === "D") {
-        // Folga ou Descanso - dia inteiro
+        // Folga ou Descanso
         const eventType: EventType = shift === "F" ? "OFF" : "REST";
         const title = shift === "F" ? "🟢 Folga" : "🟢 Descanso";
 
@@ -174,7 +146,7 @@ export class ScheduleGenerator {
         currentDate.setDate(currentDate.getDate() + 1);
         sequenceIndex++;
       } else if (shift === "SD" || shift === "SN") {
-        // Turno de trabalho
+        // Plantão
         const config = system.shiftConfigs[shift];
         const indicator = this.getIndicator(shift, p1Shifts, p2Shifts);
         const indicatorStr = indicator ? (indicator === "P1" ? "🔴" : "🔵") : "";
@@ -198,39 +170,46 @@ export class ScheduleGenerator {
           });
         }
 
-        // Calcular data/hora de término do plantão
+        // Calcular quando termina o descanso automático
         const shiftEndDateTime = this.getShiftEndDateTime(currentDate, shift);
-        
-        // Calcular data/hora do próximo plantão (plantão + descanso em horas)
         const restHours = shift === "SD" ? restConfig.sdRestHours : restConfig.snRestHours;
-        const nextPlantaoTime = this.addHours(shiftEndDateTime, restHours);
+        const restEndDateTime = this.addHours(shiftEndDateTime, restHours);
         
-        // Normalizar para data (00:00) para comparação
-        const nextPlantaoDate = new Date(nextPlantaoTime);
-        nextPlantaoDate.setHours(0, 0, 0, 0);
+        // Normalizar para data (00:00)
+        const restEndDate = new Date(restEndDateTime);
+        restEndDate.setHours(0, 0, 0, 0);
         
-        // Preencher dias de descanso automático entre o plantão atual e o próximo
-        let fillDate = new Date(currentDate);
-        fillDate.setDate(fillDate.getDate() + 1);
-        fillDate.setHours(0, 0, 0, 0);
+        // Próximo item na sequência
+        const nextSequenceShift = sequence[(sequenceIndex + 1) % sequence.length];
         
-        while (fillDate < nextPlantaoDate && fillDate <= endDate) {
-          events.push({
-            id: `${fillDate.toISOString()}-REST`,
-            date: new Date(fillDate),
-            type: "REST",
-            startTime: "00:00",
-            endTime: "23:59",
-            title: "🟢 Descanso",
-            description: "Dia de descanso automático",
-            location,
-            isRest: true,
-          });
+        // Se próximo é folga/descanso, preencher descanso automático até lá
+        if (nextSequenceShift === "F" || nextSequenceShift === "D") {
+          let fillDate = new Date(currentDate);
           fillDate.setDate(fillDate.getDate() + 1);
+          fillDate.setHours(0, 0, 0, 0);
+          
+          // Preencher descanso automático até a folga/descanso explícito
+          while (fillDate < restEndDate && fillDate <= endDate) {
+            events.push({
+              id: `${fillDate.toISOString()}-REST`,
+              date: new Date(fillDate),
+              type: "REST",
+              startTime: "00:00",
+              endTime: "23:59",
+              title: "🟢 Descanso",
+              description: "Dia de descanso automático",
+              location,
+              isRest: true,
+            });
+            fillDate.setDate(fillDate.getDate() + 1);
+          }
+          
+          currentDate = new Date(fillDate);
+        } else {
+          // Próximo é plantão, ir para próximo dia
+          currentDate.setDate(currentDate.getDate() + 1);
         }
 
-        // Avançar para o próximo evento na sequência
-        currentDate = new Date(nextPlantaoDate);
         sequenceIndex++;
       }
     }
@@ -243,9 +222,6 @@ export class ScheduleGenerator {
     });
   }
 
-  /**
-   * Determina o indicador (P1/P2) para um turno
-   */
   private static getIndicator(
     shift: ShiftType,
     p1Shifts: ShiftType[],
@@ -256,9 +232,6 @@ export class ScheduleGenerator {
     return null;
   }
 
-  /**
-   * Valida uma sequência de turnos
-   */
   static validateSequence(sequence: ShiftType[]): { valid: boolean; errors: string[] } {
     const errors: string[] = [];
 
@@ -283,9 +256,6 @@ export class ScheduleGenerator {
     };
   }
 
-  /**
-   * Obtém o sistema de turno padrão
-   */
   static getDefaultSystem(name: "12/36" | "12/48" = "12/36"): ShiftSystem {
     return this.SHIFT_SYSTEMS[name];
   }
