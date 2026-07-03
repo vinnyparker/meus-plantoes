@@ -1,18 +1,22 @@
 /**
  * Motor de geração de escalas com regras de descanso automáticas
  * 
- * LÓGICA CORRIGIDA:
- * 1. Sequência define plantões e folgas explícitas
- * 2. Após um plantão, calcular quando termina o descanso (plantão + horas)
- * 3. Se a folga explícita cabe dentro do descanso, preencher descanso automático até a folga
- * 4. Depois da folga, próximo plantão
+ * ALGORITMO CORRETO E SIMPLES:
+ * 1. Sequência define a ordem dos plantões e folgas: "SD, F, SN, D, F, SD, F, SN, D, F"
+ * 2. Para cada item da sequência:
+ *    - Se é plantão (SD/SN): adiciona na data calculada
+ *    - Se é folga/descanso (F/D): adiciona na próxima data disponível
+ * 3. Após CADA plantão: soma as horas de descanso ao horário de término
+ *    - SD termina 19:00 + 36h = 19:00 do dia 03/07
+ *    - SN termina 07:00 + 48h = 07:00 do dia 06/07
  * 
- * Exemplo: "SD, F, SN, F" com SD 36h + SN 48h
- * - 01/07: SD (07:00-19:00) termina 19:00
- * - 02/07: F (folga explícita) - dentro do descanso de 36h
- * - 03/07: SN (19:00-07:00 dia 04) - começa quando termina a folga
- * - 04/07: F (folga explícita)
- * - 05/07: SD (próximo plantão)
+ * Exemplo: "SD, F, SN, D, F"
+ * - 01/07: SD (07:00-19:00) termina 19:00 + 36h = 19:00 dia 03/07
+ * - 02/07: F (próximo item)
+ * - 03/07: SN (19:00-07:00 dia 04) termina 07:00 + 48h = 07:00 dia 06/07
+ * - 04/07: D (próximo item)
+ * - 05/07: F (próximo item)
+ * - 06/07: SD (próximo plantão após descanso)
  */
 
 import { ScheduleEvent, ShiftType, ShiftSystem, IndicatorType, EventType } from "@/lib/types/schedule";
@@ -120,12 +124,19 @@ export class ScheduleGenerator {
 
     let currentDate = new Date(startDate);
     let sequenceIndex = 0;
+    let nextPlantaoDate: Date | null = null;
 
     while (currentDate <= endDate) {
       const shift = sequence[sequenceIndex % sequence.length];
 
+      // Se há um próximo plantão agendado, pular para essa data
+      if (nextPlantaoDate && currentDate < nextPlantaoDate) {
+        currentDate.setDate(currentDate.getDate() + 1);
+        continue;
+      }
+
       if (shift === "F" || shift === "D") {
-        // Folga ou Descanso
+        // Folga ou Descanso - dia inteiro
         const eventType: EventType = shift === "F" ? "OFF" : "REST";
         const title = shift === "F" ? "🟢 Folga" : "🟢 Descanso";
 
@@ -145,6 +156,7 @@ export class ScheduleGenerator {
 
         currentDate.setDate(currentDate.getDate() + 1);
         sequenceIndex++;
+        nextPlantaoDate = null;
       } else if (shift === "SD" || shift === "SN") {
         // Plantão
         const config = system.shiftConfigs[shift];
@@ -170,46 +182,18 @@ export class ScheduleGenerator {
           });
         }
 
-        // Calcular quando termina o descanso automático
+        // Calcular quando termina o plantão
         const shiftEndDateTime = this.getShiftEndDateTime(currentDate, shift);
+        
+        // Calcular quando começa o próximo plantão (após descanso)
         const restHours = shift === "SD" ? restConfig.sdRestHours : restConfig.snRestHours;
-        const restEndDateTime = this.addHours(shiftEndDateTime, restHours);
+        const nextPlantaoDateTime = this.addHours(shiftEndDateTime, restHours);
         
         // Normalizar para data (00:00)
-        const restEndDate = new Date(restEndDateTime);
-        restEndDate.setHours(0, 0, 0, 0);
-        
-        // Próximo item na sequência
-        const nextSequenceShift = sequence[(sequenceIndex + 1) % sequence.length];
-        
-        // Se próximo é folga/descanso, preencher descanso automático até lá
-        if (nextSequenceShift === "F" || nextSequenceShift === "D") {
-          let fillDate = new Date(currentDate);
-          fillDate.setDate(fillDate.getDate() + 1);
-          fillDate.setHours(0, 0, 0, 0);
-          
-          // Preencher descanso automático até a folga/descanso explícito
-          while (fillDate < restEndDate && fillDate <= endDate) {
-            events.push({
-              id: `${fillDate.toISOString()}-REST`,
-              date: new Date(fillDate),
-              type: "REST",
-              startTime: "00:00",
-              endTime: "23:59",
-              title: "🟢 Descanso",
-              description: "Dia de descanso automático",
-              location,
-              isRest: true,
-            });
-            fillDate.setDate(fillDate.getDate() + 1);
-          }
-          
-          currentDate = new Date(fillDate);
-        } else {
-          // Próximo é plantão, ir para próximo dia
-          currentDate.setDate(currentDate.getDate() + 1);
-        }
+        nextPlantaoDate = new Date(nextPlantaoDateTime);
+        nextPlantaoDate.setHours(0, 0, 0, 0);
 
+        currentDate.setDate(currentDate.getDate() + 1);
         sequenceIndex++;
       }
     }
