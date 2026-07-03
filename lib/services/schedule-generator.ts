@@ -1,6 +1,6 @@
 /**
  * Motor de geração de escalas com regras de descanso automáticas
- * Algoritmo baseado em cálculo de data/hora de término + horas de descanso
+ * Algoritmo: sequência define plantões/folgas, descanso é AUTOMÁTICO após plantões
  */
 
 import { ScheduleEvent, ShiftType, ShiftSystem, IndicatorType, EventType } from "@/lib/types/schedule";
@@ -66,7 +66,8 @@ export class ScheduleGenerator {
   };
 
   /**
-   * Parseia uma sequência de turnos (ex: "SD, F, SN, D, F")
+   * Parseia uma sequência de turnos (ex: "SD, F, SN, F")
+   * Nota: D (descanso) é automático e não precisa estar na sequência
    */
   static parseSequence(sequence: string): ShiftType[] {
     return sequence
@@ -106,25 +107,48 @@ export class ScheduleGenerator {
   }
 
   /**
-   * Calcula a data/hora do próximo plantão
-   * Soma as horas de descanso ao horário de término do plantão anterior
+   * Calcula a data/hora do próximo evento (plantão ou folga)
+   * Após um plantão (SD/SN), soma as horas de descanso
+   * Após uma folga (F), vai para o próximo dia
    */
-  private static getNextShiftDateTime(
-    currentShiftDate: Date,
+  private static getNextEventDateTime(
+    currentDate: Date,
     currentShiftType: ShiftType,
-    restHours: number
+    restConfig: RestConfig
   ): Date {
-    // Obter data/hora de término do plantão atual
-    const shiftEndDateTime = this.getShiftEndDateTime(currentShiftDate, currentShiftType);
+    if (currentShiftType === "F" || currentShiftType === "D") {
+      // Folga ou descanso: próximo evento é no dia seguinte
+      const result = new Date(currentDate);
+      result.setDate(result.getDate() + 1);
+      result.setHours(0, 0, 0, 0);
+      return result;
+    }
 
-    // Somar as horas de descanso
-    const nextShiftDateTime = this.addHours(shiftEndDateTime, restHours);
+    // Plantão: calcular data/hora de término + descanso
+    const shiftEndDateTime = this.getShiftEndDateTime(currentDate, currentShiftType);
+    const restHours = currentShiftType === "SD" ? restConfig.sdRestHours : restConfig.snRestHours;
+    const nextEventDateTime = this.addHours(shiftEndDateTime, restHours);
 
-    return nextShiftDateTime;
+    // Retornar como data (00:00)
+    const result = new Date(nextEventDateTime);
+    result.setHours(0, 0, 0, 0);
+    return result;
   }
 
   /**
    * Gera uma escala completa a partir de uma sequência
+   * 
+   * IMPORTANTE: A sequência define APENAS os plantões e folgas explícitas.
+   * O descanso automático é calculado APÓS cada plantão.
+   * 
+   * Exemplo: "SD, F, SN, F" significa:
+   * - SD (plantão)
+   * - F (folga explícita)
+   * - SN (plantão)
+   * - F (folga explícita)
+   * - (depois volta para SD)
+   * 
+   * O descanso automático é inserido ENTRE o plantão e a folga explícita.
    */
   static generateSchedule(
     sequence: ShiftType[],
@@ -147,25 +171,23 @@ export class ScheduleGenerator {
     // Normalizar startDate para 00:00
     startDate.setHours(0, 0, 0, 0);
 
-    let currentDateTime = new Date(startDate);
-    currentDateTime.setHours(0, 0, 0, 0);
-    
+    let currentDate = new Date(startDate);
     let sequenceIndex = 0;
+    let lastShiftWasPlantao = false;
+    let lastShiftType: ShiftType | null = null;
 
-    while (currentDateTime <= endDate) {
+    while (currentDate <= endDate) {
       const shift = sequence[sequenceIndex % sequence.length];
-      const shiftDate = new Date(currentDateTime);
-      shiftDate.setHours(0, 0, 0, 0);
 
       if (shift === "F" || shift === "D") {
         // Folga ou Descanso - dia inteiro
         const eventType: EventType = shift === "F" ? "OFF" : "REST";
         const title = shift === "F" ? "🟢 Folga" : "🟢 Descanso";
 
-        if (shiftDate >= startDate && shiftDate <= endDate) {
+        if (currentDate >= startDate && currentDate <= endDate) {
           events.push({
-            id: `${shiftDate.toISOString()}-${eventType}`,
-            date: new Date(shiftDate),
+            id: `${currentDate.toISOString()}-${eventType}`,
+            date: new Date(currentDate),
             type: eventType,
             startTime: "00:00",
             endTime: "23:59",
@@ -176,7 +198,8 @@ export class ScheduleGenerator {
           });
         }
 
-        currentDateTime.setDate(currentDateTime.getDate() + 1);
+        currentDate.setDate(currentDate.getDate() + 1);
+        lastShiftWasPlantao = false;
         sequenceIndex++;
       } else if (shift === "SD" || shift === "SN") {
         // Turno de trabalho
@@ -188,10 +211,10 @@ export class ScheduleGenerator {
         const endTime = shift === "SD" ? "19:00" : "07:00";
         const title = `${startTime} ${config.icon} ${shift} - ${config.label} ${indicatorStr}`.trim();
 
-        if (shiftDate >= startDate && shiftDate <= endDate) {
+        if (currentDate >= startDate && currentDate <= endDate) {
           events.push({
-            id: `${shiftDate.toISOString()}-${shift}`,
-            date: new Date(shiftDate),
+            id: `${currentDate.toISOString()}-${shift}`,
+            date: new Date(currentDate),
             type: shift,
             startTime: startTime,
             endTime: endTime,
@@ -203,38 +226,48 @@ export class ScheduleGenerator {
           });
         }
 
-        // Calcular data/hora do próximo plantão
-        const restHours = shift === "SD" ? restConfig.sdRestHours : restConfig.snRestHours;
-        const nextShiftDateTime = this.getNextShiftDateTime(shiftDate, shift, restHours);
-
-        // Preencher dias de descanso entre o plantão atual e o próximo
-        let fillDate = new Date(shiftDate);
-        fillDate.setDate(fillDate.getDate() + 1);
-        fillDate.setHours(0, 0, 0, 0);
-
-        // Obter a data do próximo plantão (sem horas)
-        const nextShiftDate = new Date(nextShiftDateTime);
-        nextShiftDate.setHours(0, 0, 0, 0);
-
-        while (fillDate < nextShiftDate && fillDate <= endDate) {
-          // Adicionar dia de descanso entre plantões
-          events.push({
-            id: `${fillDate.toISOString()}-REST`,
-            date: new Date(fillDate),
-            type: "REST",
-            startTime: "00:00",
-            endTime: "23:59",
-            title: "🟢 Descanso",
-            description: "Dia de descanso",
-            location,
-            isRest: true,
-          });
-
+        // Calcular data do próximo evento na sequência
+        const nextSequenceShift = sequence[(sequenceIndex + 1) % sequence.length];
+        
+        // Se o próximo na sequência é uma folga (F/D), precisamos preencher o descanso automático
+        if (nextSequenceShift === "F" || nextSequenceShift === "D") {
+          // Calcular quando o descanso automático termina
+          const shiftEndDateTime = this.getShiftEndDateTime(currentDate, shift);
+          const restHours = shift === "SD" ? restConfig.sdRestHours : restConfig.snRestHours;
+          const restEndDateTime = this.addHours(shiftEndDateTime, restHours);
+          
+          // Normalizar para data (00:00)
+          const restEndDate = new Date(restEndDateTime);
+          restEndDate.setHours(0, 0, 0, 0);
+          
+          // Preencher dias de descanso automático
+          let fillDate = new Date(currentDate);
           fillDate.setDate(fillDate.getDate() + 1);
+          fillDate.setHours(0, 0, 0, 0);
+          
+          while (fillDate < restEndDate && fillDate <= endDate) {
+            events.push({
+              id: `${fillDate.toISOString()}-REST`,
+              date: new Date(fillDate),
+              type: "REST",
+              startTime: "00:00",
+              endTime: "23:59",
+              title: "🟢 Descanso",
+              description: "Dia de descanso automático",
+              location,
+              isRest: true,
+            });
+            fillDate.setDate(fillDate.getDate() + 1);
+          }
+          
+          currentDate = new Date(restEndDate);
+        } else {
+          // Próximo é um plantão, ir para o próximo dia
+          currentDate.setDate(currentDate.getDate() + 1);
         }
 
-        // Avançar para o próximo plantão
-        currentDateTime = new Date(nextShiftDate);
+        lastShiftWasPlantao = true;
+        lastShiftType = shift;
         sequenceIndex++;
       }
     }
